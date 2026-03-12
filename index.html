@@ -3,23 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Widget - Reusable Edition</title>
-    <!-- Tailwind CSS -->
+    <title>Feedback Widget - No Scroll Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React and Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        body { 
+        /* 全要素のサイズ計算を固定 */
+        * {
+            box-sizing: border-box;
+        }
+
+        /* htmlとbodyでスクロールを完全に禁止 */
+        html, body { 
             background: transparent; 
-            margin: 0; padding: 0; 
-            overflow: hidden; 
+            margin: 0; 
+            padding: 0; 
+            height: 100%; 
+            width: 100%;
+            overflow: hidden !important; 
             font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", sans-serif; 
         }
+
+        /* Reactのルート要素も高さを100%に */
         #root { 
-            height: 100vh; 
+            height: 100%; 
+            width: 100%;
             display: flex; 
             justify-content: flex-start; 
             align-items: center; 
@@ -32,13 +42,14 @@
             background-color: #ffffff;
             border: 1px solid #e5e7eb;
             border-radius: 16px;
-            padding: 0.6rem 2rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+            padding: 0.5rem 1.8rem; /* さらにスリム化 */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             position: relative;
+            margin-left: 2px; /* 影が切れないようにわずかにマージン */
         }
 
         @media (max-width: 600px) {
-            .widget-panel { gap: 1rem; padding: 0.5rem 1rem; }
+            .widget-panel { gap: 1rem; padding: 0.4rem 1rem; }
         }
 
         .minimal-btn {
@@ -56,8 +67,8 @@
         .minimal-btn:active { transform: translateY(1px) scale(0.96); }
 
         .icon-wrapper {
-            width: 40px; 
-            height: 40px;
+            width: 38px; 
+            height: 38px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -90,12 +101,10 @@
             z-index: 20;
         }
 
-        .has-count .flat-dot {
-            background-color: #0f172a;
-        }
+        .has-count .flat-dot { background-color: #0f172a; }
 
         .minimal-label {
-            margin-top: 2px; 
+            margin-top: 1px; 
             font-size: 11px; 
             font-weight: 800;
             color: #1e293b;
@@ -111,14 +120,14 @@
             background: rgba(30, 41, 59, 0.95);
             backdrop-filter: blur(4px);
             color: white;
-            padding: 8px 16px;
+            padding: 6px 14px;
             border-radius: 10px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
             display: flex;
             align-items: center;
-            gap: 12px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            gap: 10px;
+            box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.1);
             z-index: 100;
             animation: fadeIn 0.2s ease-out;
             white-space: nowrap;
@@ -138,18 +147,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
         import { getFirestore, doc, onSnapshot, updateDoc, increment, setDoc, collection } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
-        window.FirebaseSDK = { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, getFirestore, doc, onSnapshot, updateDoc, increment, setDoc, collection };
-    </script>
-
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-
-        // デフォルト設定
-        const DEFAULT_SETTING = {
-            id: "default_page",
-            title: "名称未設定ページ"
-        };
-
         const MY_FIREBASE_CONFIG = {
             apiKey: "AIzaSyAvGBhHtPdR0qETpNh3eyYiVpAC0gYb2YU",
             authDomain: "uds-portal-tools.firebaseapp.com",
@@ -157,6 +154,18 @@
             storageBucket: "uds-portal-tools.firebasestorage.app",
             messagingSenderId: "1058352022068",
             appId: "1:1058352022068:web:70dcd97f1555d6a9d04061"
+        };
+        const APP_ID = "uds-portal-tools";
+
+        window.FirebaseSDK = { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, getFirestore, doc, onSnapshot, updateDoc, increment, setDoc, collection, MY_FIREBASE_CONFIG, APP_ID };
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const DEFAULT_SETTING = {
+            id: "default_page",
+            title: "名称未設定ページ"
         };
 
         const Icons = {
@@ -203,13 +212,9 @@
 
             useEffect(() => {
                 const params = new URLSearchParams(window.location.search);
-                // URLからpidとptitleを取得。なければデフォルト。
                 setPageId(params.get('pid') || DEFAULT_SETTING.id);
                 setPageTitle(params.get('ptitle') || DEFAULT_SETTING.title);
-                
-                if (params.get('mode') === 'admin') {
-                    setView('admin');
-                }
+                if (params.get('mode') === 'admin') setView('admin');
             }, []);
 
             useEffect(() => {
@@ -219,7 +224,7 @@
 
             useEffect(() => {
                 if (!ready) return;
-                const { initializeApp, getAuth, signInAnonymously, onAuthStateChanged } = window.FirebaseSDK;
+                const { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, MY_FIREBASE_CONFIG } = window.FirebaseSDK;
                 const app = initializeApp(MY_FIREBASE_CONFIG);
                 const auth = getAuth(app);
                 signInAnonymously(auth).catch(console.error);
@@ -228,41 +233,38 @@
 
             useEffect(() => {
                 if (!user || view !== 'widget' || !ready || !pageId) return;
-                const { getFirestore, doc, onSnapshot, setDoc } = window.FirebaseSDK;
+                const { getFirestore, doc, onSnapshot, setDoc, APP_ID } = window.FirebaseSDK;
                 const db = getFirestore();
-                const docRef = doc(db, 'artifacts', 'uds-portal-tools', 'public', 'data', 'feedback', pageId);
+                const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'feedback', pageId);
                 return onSnapshot(docRef, (snap) => {
-                    if (snap.exists()) { setStats(snap.data()); }
-                    else { setDoc(docRef, { learning: 0, clarity: 0, insight: 0, title: pageTitle, lastUpdated: Date.now() }); }
+                    if (snap.exists()) setStats(snap.data());
+                    else setDoc(docRef, { learning: 0, clarity: 0, insight: 0, title: pageTitle, lastUpdated: Date.now() });
                 });
-            }, [user, view, ready, pageId, pageTitle]);
+            }, [user, view, ready, pageId]);
 
             useEffect(() => {
                 if (!user || view !== 'admin' || !ready) return;
-                const { getFirestore, collection, onSnapshot } = window.FirebaseSDK;
+                const { getFirestore, collection, onSnapshot, APP_ID } = window.FirebaseSDK;
                 const db = getFirestore();
-                const colRef = collection(db, 'artifacts', 'uds-portal-tools', 'public', 'data', 'feedback');
+                const colRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'feedback');
                 return onSnapshot(colRef, (s) => setAllPages(s.docs.map(d => ({ id: d.id, ...d.data() }))));
             }, [user, view, ready]);
 
             const handleAction = async (type) => {
                 if (!user || !pageId) return;
-                const { getFirestore, doc, updateDoc, increment } = window.FirebaseSDK;
+                const { getFirestore, doc, updateDoc, increment, APP_ID } = window.FirebaseSDK;
                 const db = getFirestore();
-                const docRef = doc(db, 'artifacts', 'uds-portal-tools', 'public', 'data', 'feedback', pageId);
-                
+                const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'feedback', pageId);
                 await updateDoc(docRef, { [type]: increment(1), lastUpdated: Date.now(), title: pageTitle });
-                
                 setUndoVisible(true);
                 if (timerRef.current) clearTimeout(timerRef.current);
                 timerRef.current = setTimeout(() => setUndoVisible(false), 2000);
             };
 
             const resetPageStats = async (targetId) => {
-                if (!user) return;
-                const { getFirestore, doc, updateDoc } = window.FirebaseSDK;
+                const { getFirestore, doc, updateDoc, APP_ID } = window.FirebaseSDK;
                 const db = getFirestore();
-                const docRef = doc(db, 'artifacts', 'uds-portal-tools', 'public', 'data', 'feedback', targetId);
+                const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'feedback', targetId);
                 await updateDoc(docRef, { learning: 0, clarity: 0, insight: 0, lastUpdated: Date.now() });
                 setConfirmReset(null);
             };
@@ -282,10 +284,8 @@
                     <div className="p-4 bg-gray-50 min-h-screen text-[12px] text-slate-800">
                         <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                             <div className="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                <h2 className="font-bold text-sm">集計データ（管理モード）</h2>
-                                <div className="flex gap-2">
-                                    <button onClick={downloadCSV} className="bg-slate-900 text-white px-3 py-1 rounded hover:bg-black transition text-[10px] font-bold">CSV出力</button>
-                                </div>
+                                <h2 className="font-bold text-sm">集計データ</h2>
+                                <button onClick={downloadCSV} className="bg-slate-900 text-white px-3 py-1 rounded hover:bg-black transition text-[10px] font-bold">CSV出力</button>
                             </div>
                             <table className="w-full text-left">
                                 <thead><tr className="bg-slate-50 text-slate-400 font-bold text-[9px] uppercase tracking-widest">
@@ -322,19 +322,9 @@
             return (
                 <div className="flex justify-start items-center p-0 w-full select-none h-full">
                     <div className="widget-panel">
-                        <ReactionButton 
-                            icon={Icons.Naruhodo} label="なるほど！" count={stats.learning} 
-                            onClick={() => handleAction('learning')} className="btn-naruhodo" 
-                        />
-                        <ReactionButton 
-                            icon={Icons.Yattemiru} label="やってみる" count={stats.clarity} 
-                            onClick={() => handleAction('clarity')} className="btn-yattemiru" 
-                        />
-                        <ReactionButton 
-                            icon={Icons.Tensai} label="天才かよ" count={stats.insight} 
-                            onClick={() => handleAction('insight')} className="btn-tensai" 
-                        />
-
+                        <ReactionButton icon={Icons.Naruhodo} label="なるほど！" count={stats.learning} onClick={() => handleAction('learning')} className="btn-naruhodo" />
+                        <ReactionButton icon={Icons.Yattemiru} label="やってみる" count={stats.clarity} onClick={() => handleAction('clarity')} className="btn-yattemiru" />
+                        <ReactionButton icon={Icons.Tensai} label="天才かよ" count={stats.insight} onClick={() => handleAction('insight')} className="btn-tensai" />
                         {undoVisible && (
                             <div className="undo-toast">
                                 <span>送信しました</span>
@@ -350,9 +340,7 @@
             return (
                 <button className={`minimal-btn group ${className} ${count > 0 ? 'has-count' : ''}`} onClick={onClick}>
                     <div className="icon-wrapper">
-                        <div className="flat-dot">
-                            {count > 99 ? '99+' : count}
-                        </div>
+                        <div className="flat-dot">{count > 99 ? '99+' : count}</div>
                         <Icon count={count} />
                     </div>
                     <span className="minimal-label">{label}</span>
