@@ -3,53 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Widget - No Scroll Edition</title>
+    <title>Feedback Widget - Zero Scroll Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        /* 全要素のサイズ計算を固定 */
+        /* すべての要素でスクロールと余計な計算を排除 */
         * {
             box-sizing: border-box;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE/Edge */
         }
+        ::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 
-        /* htmlとbodyでスクロールを完全に禁止 */
         html, body { 
             background: transparent; 
-            margin: 0; 
-            padding: 0; 
-            height: 100%; 
-            width: 100%;
-            overflow: hidden !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            height: 100% !important; 
+            width: 100% !important;
+            overflow: hidden !important; /* 絶対にスクロールさせない */
+            -webkit-text-size-adjust: 100%;
             font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", sans-serif; 
         }
 
-        /* Reactのルート要素も高さを100%に */
         #root { 
             height: 100%; 
             width: 100%;
             display: flex; 
             justify-content: flex-start; 
-            align-items: center; 
+            align-items: center; /* 縦方向中央に配置 */
+            overflow: hidden !important;
         }
         
         .widget-panel {
             display: flex;
-            gap: 2rem;
+            gap: 1.8rem;
             align-items: center;
             background-color: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 16px;
-            padding: 0.5rem 1.8rem; /* さらにスリム化 */
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1.5px solid #e5e7eb; /* 影を消して枠線を少し強調 */
+            border-radius: 12px;
+            padding: 6px 20px; /* 上下をさらに圧縮 */
             position: relative;
-            margin-left: 2px; /* 影が切れないようにわずかにマージン */
+            margin-left: 2px;
+            /* 影を外に出さず、内側に少し入れることでスクロール誘発を防ぐ */
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+            max-height: 90px; /* 高さを物理的に制限 */
         }
 
         @media (max-width: 600px) {
-            .widget-panel { gap: 1rem; padding: 0.4rem 1rem; }
+            .widget-panel { 
+                gap: 0.8rem; 
+                padding: 4px 12px;
+                transform: scale(0.95); /* スマホでは全体を少し縮小して安全圏に */
+                transform-origin: left center;
+            }
         }
 
         .minimal-btn {
@@ -57,55 +67,51 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
             border: none;
             background: transparent;
             outline: none;
+            flex-shrink: 0;
         }
 
-        .minimal-btn:active { transform: translateY(1px) scale(0.96); }
-
         .icon-wrapper {
-            width: 38px; 
-            height: 38px;
+            width: 36px; 
+            height: 36px;
             display: flex;
             justify-content: center;
             align-items: center;
             color: #475569; 
-            transition: all 0.3s ease;
+            transition: color 0.3s ease;
         }
 
-        .btn-naruhodo.has-count .icon-wrapper, .btn-naruhodo:hover .icon-wrapper { color: #d97706; }
-        .btn-yattemiru.has-count .icon-wrapper, .btn-yattemiru:hover .icon-wrapper { color: #059669; }
-        .btn-tensai.has-count .icon-wrapper, .btn-tensai:hover .icon-wrapper { color: #7c3aed; }
+        .btn-naruhodo.has-count .icon-wrapper { color: #d97706; }
+        .btn-yattemiru.has-count .icon-wrapper { color: #059669; }
+        .btn-tensai.has-count .icon-wrapper { color: #7c3aed; }
 
         .flat-dot {
             position: absolute;
-            top: -2px;
-            right: -4px;
+            top: -1px;
+            right: -3px;
             background-color: #334155;
             color: white;
             font-size: 10px;
             font-weight: 900;
-            height: 17px;
-            min-width: 17px;
+            height: 16px;
+            min-width: 16px;
             padding: 0 4px;
-            border-radius: 5px;
+            border-radius: 4px;
             display: flex;
             justify-content: center;
             align-items: center;
-            pointer-events: none;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border: 2px solid #fff;
-            z-index: 20;
+            border: 1.5px solid #fff;
+            z-index: 10;
         }
 
         .has-count .flat-dot { background-color: #0f172a; }
 
         .minimal-label {
-            margin-top: 1px; 
-            font-size: 11px; 
+            margin-top: 0; 
+            font-size: 10px; 
             font-weight: 800;
             color: #1e293b;
             letter-spacing: 0.01em;
@@ -117,25 +123,14 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(4px);
+            background: rgba(15, 23, 42, 0.9);
             color: white;
-            padding: 6px 14px;
-            border-radius: 10px;
+            padding: 4px 12px;
+            border-radius: 8px;
             font-size: 11px;
             font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.1);
             z-index: 100;
-            animation: fadeIn 0.2s ease-out;
-            white-space: nowrap;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translate(-50%, -40%); }
-            to { opacity: 1; transform: translate(-50%, -50%); }
+            pointer-events: none; /* 下のボタンを邪魔しない */
         }
     </style>
 </head>
@@ -258,7 +253,7 @@
                 await updateDoc(docRef, { [type]: increment(1), lastUpdated: Date.now(), title: pageTitle });
                 setUndoVisible(true);
                 if (timerRef.current) clearTimeout(timerRef.current);
-                timerRef.current = setTimeout(() => setUndoVisible(false), 2000);
+                timerRef.current = setTimeout(() => setUndoVisible(false), 1500);
             };
 
             const resetPageStats = async (targetId) => {
@@ -320,15 +315,14 @@
             }
 
             return (
-                <div className="flex justify-start items-center p-0 w-full select-none h-full">
+                <div className="flex justify-start items-center p-0 w-full select-none h-full overflow-hidden">
                     <div className="widget-panel">
                         <ReactionButton icon={Icons.Naruhodo} label="なるほど！" count={stats.learning} onClick={() => handleAction('learning')} className="btn-naruhodo" />
                         <ReactionButton icon={Icons.Yattemiru} label="やってみる" count={stats.clarity} onClick={() => handleAction('clarity')} className="btn-yattemiru" />
                         <ReactionButton icon={Icons.Tensai} label="天才かよ" count={stats.insight} onClick={() => handleAction('insight')} className="btn-tensai" />
                         {undoVisible && (
                             <div className="undo-toast">
-                                <span>送信しました</span>
-                                <button onClick={() => setUndoVisible(false)} className="text-blue-300 ml-1">×</button>
+                                <span>送信完了</span>
                             </div>
                         )}
                     </div>
