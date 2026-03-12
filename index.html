@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Widget - High Visibility Edition</title>
+    <title>Feedback Widget - Space Efficient Edition</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React and Babel -->
@@ -15,30 +15,31 @@
         body { 
             background: transparent; 
             margin: 0; padding: 0; 
-            min-height: 100px; 
+            overflow: hidden; /* 意図しないスクロールバーを防ぐ */
             font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", sans-serif; 
         }
         #root { 
-            min-height: 100px; 
+            height: 100vh; /* 画面いっぱいに広げる */
             display: flex; 
             justify-content: flex-start; 
             align-items: center; 
         }
         
-        /* ホワイトパネル */
         .widget-panel {
             display: flex;
-            gap: 2.5rem;
+            gap: 2rem;
             align-items: center;
             background-color: #ffffff;
             border: 1px solid #e5e7eb;
-            border-radius: 20px;
-            padding: 1.25rem 2.5rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            /* 上下のパディングを1.25rem(20px)から0.6rem(10px)に短縮 */
+            padding: 0.6rem 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+            position: relative;
         }
 
         @media (max-width: 600px) {
-            .widget-panel { gap: 1.25rem; padding: 1rem 1.25rem; }
+            .widget-panel { gap: 1rem; padding: 0.5rem 1rem; }
         }
 
         .minimal-btn {
@@ -56,8 +57,8 @@
         .minimal-btn:active { transform: translateY(1px) scale(0.96); }
 
         .icon-wrapper {
-            width: 44px;
-            height: 44px;
+            width: 40px; /* 44pxから少し縮小 */
+            height: 40px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -65,29 +66,27 @@
             transition: all 0.3s ease;
         }
 
-        /* 反応時のカラー */
         .btn-naruhodo.has-count .icon-wrapper, .btn-naruhodo:hover .icon-wrapper { color: #d97706; }
         .btn-yattemiru.has-count .icon-wrapper, .btn-yattemiru:hover .icon-wrapper { color: #059669; }
         .btn-tensai.has-count .icon-wrapper, .btn-tensai:hover .icon-wrapper { color: #7c3aed; }
 
-        /* バッジ */
         .flat-dot {
             position: absolute;
-            top: -4px;
-            right: -6px;
+            top: -2px;
+            right: -4px;
             background-color: #334155;
             color: white;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 900;
-            height: 19px;
-            min-width: 19px;
-            padding: 0 5px;
-            border-radius: 6px;
+            height: 17px;
+            min-width: 17px;
+            padding: 0 4px;
+            border-radius: 5px;
             display: flex;
             justify-content: center;
             align-items: center;
             pointer-events: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             border: 2px solid #fff;
             z-index: 20;
         }
@@ -97,12 +96,39 @@
         }
 
         .minimal-label {
-            margin-top: 5px;
-            font-size: 12px;
+            margin-top: 2px; /* 5pxから縮小 */
+            font-size: 11px; /* 12pxから少し縮小 */
             font-weight: 800;
             color: #1e293b;
             letter-spacing: 0.01em;
             white-space: nowrap;
+        }
+
+        /* 送信完了トーストをパネル内に収まるように配置 */
+        .undo-toast {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(4px);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            animation: fadeIn 0.2s ease-out;
+            white-space: nowrap;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -40%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
         }
     </style>
 </head>
@@ -118,7 +144,7 @@
     </script>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
         const PAGE_SETTING = {
             id: "somu_20240313_01", 
@@ -134,7 +160,6 @@
             appId: "1:1058352022068:web:70dcd97f1555d6a9d04061"
         };
 
-        // --- カウントに応じて塗りつぶしを切り替えるアイコン ---
         const Icons = {
             Naruhodo: ({ count }) => (
                 <svg viewBox="0 0 24 24" className="w-8 h-8" 
@@ -172,6 +197,15 @@
             const [allPages, setAllPages] = useState([]);
             const [view, setView] = useState('widget');
             const [confirmReset, setConfirmReset] = useState(null);
+            const [undoVisible, setUndoVisible] = useState(false);
+            const timerRef = useRef(null);
+
+            useEffect(() => {
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('mode') === 'admin') {
+                    setView('admin');
+                }
+            }, []);
 
             useEffect(() => {
                 const interval = setInterval(() => { if (window.FirebaseSDK) { setReady(true); clearInterval(interval); } }, 100);
@@ -211,7 +245,12 @@
                 const { getFirestore, doc, updateDoc, increment } = window.FirebaseSDK;
                 const db = getFirestore();
                 const docRef = doc(db, 'artifacts', 'uds-portal-tools', 'public', 'data', 'feedback', PAGE_SETTING.id);
+                
                 await updateDoc(docRef, { [type]: increment(1), lastUpdated: Date.now(), title: PAGE_SETTING.title });
+                
+                setUndoVisible(true);
+                if (timerRef.current) clearTimeout(timerRef.current);
+                timerRef.current = setTimeout(() => setUndoVisible(false), 2000); // 3秒から2秒に短縮
             };
 
             const resetPageStats = async (targetId) => {
@@ -238,10 +277,9 @@
                     <div className="p-4 bg-gray-50 min-h-screen text-[12px] text-slate-800">
                         <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                             <div className="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                <h2 className="font-bold text-sm">集計データ（管理用）</h2>
+                                <h2 className="font-bold text-sm">集計データ（管理モード）</h2>
                                 <div className="flex gap-2">
-                                    <button onClick={downloadCSV} className="bg-slate-900 text-white px-3 py-1 rounded hover:bg-black transition text-[10px]">CSV出力</button>
-                                    <button onClick={() => setView('widget')} className="border border-slate-300 px-3 py-1 rounded hover:bg-white transition text-[10px]">戻る</button>
+                                    <button onClick={downloadCSV} className="bg-slate-900 text-white px-3 py-1 rounded hover:bg-black transition text-[10px] font-bold">CSV出力</button>
                                 </div>
                             </div>
                             <table className="w-full text-left">
@@ -263,9 +301,9 @@
                                         <td className="p-3 text-center text-violet-600 font-bold">{p.insight || 0}</td>
                                         <td className="p-3 text-right">
                                             {confirmReset === p.id ? (
-                                                <button onClick={() => resetPageStats(p.id)} className="bg-red-500 text-white px-2 py-0.5 rounded text-[9px]">確定</button>
+                                                <button onClick={() => resetPageStats(p.id)} className="bg-red-500 text-white px-2 py-0.5 rounded text-[9px] font-bold">確定</button>
                                             ) : (
-                                                <button onClick={() => setConfirmReset(p.id)} className="text-gray-300 hover:text-red-400 text-[9px]">消去</button>
+                                                <button onClick={() => setConfirmReset(p.id)} className="text-gray-300 hover:text-red-400 text-[9px] font-bold">リセット</button>
                                             )}
                                         </td>
                                     </tr>
@@ -277,7 +315,7 @@
             }
 
             return (
-                <div className="flex justify-start items-center p-2 w-full select-none">
+                <div className="flex justify-start items-center p-0 w-full select-none h-full">
                     <div className="widget-panel">
                         <ReactionButton 
                             icon={Icons.Naruhodo} label="なるほど！" count={stats.learning} 
@@ -291,9 +329,14 @@
                             icon={Icons.Tensai} label="天才かよ" count={stats.insight} 
                             onClick={() => handleAction('insight')} className="btn-tensai" 
                         />
+
+                        {undoVisible && (
+                            <div className="undo-toast">
+                                <span>送信しました</span>
+                                <button onClick={() => setUndoVisible(false)} className="text-blue-300 ml-1">×</button>
+                            </div>
+                        )}
                     </div>
-                    {/* 管理者ボタン */}
-                    <button onClick={() => setView('admin')} className="fixed bottom-0 right-0 p-1 opacity-0 hover:opacity-100 text-[10px] text-slate-100">⚙️</button>
                 </div>
             );
         }
