@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Widget - Full Responsive Edition</title>
+    <title>Feedback Widget - No Crush Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        /* すべての要素でサイズ計算を固定 */
         * {
             box-sizing: border-box;
             scrollbar-width: none;
@@ -34,24 +33,23 @@
             height: 100%;
             display: flex; 
             justify-content: center; 
-            /* 中央寄せによる上下の切れを防ぐため、安全マージンを取って上寄せに固定 */
-            align-items: flex-start; 
-            padding-top: 15px; /* 上部のバッジはみ出し用スペース */
-            padding-left: 10px;
-            padding-right: 10px;
+            align-items: center; 
+            padding: 12px 8px; /* バッジが切れないための余白 */
+            overflow: hidden !important;
         }
         
         .widget-panel {
             display: flex;
-            justify-content: space-evenly; /* gapの代わりに均等配置（横幅不足を解消） */
+            justify-content: space-evenly; 
             align-items: center;
             width: 100%;
-            max-width: 360px; /* PCでも広がりすぎない最大幅 */
+            max-width: 360px; 
             background-color: #ffffff;
             border: 1px solid #e5e7eb;
             border-radius: 12px;
-            padding: 8px 0; /* 上下のみパディング、左右はflexに任せる */
+            padding: 8px 0; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            flex-shrink: 0; /* 【重要】親枠が狭くても絶対に潰れない */
         }
 
         .minimal-btn {
@@ -63,7 +61,7 @@
             border: none;
             background: transparent;
             outline: none;
-            flex: 1; /* 3つのボタンで幅を均等に分割（絶対にはみ出さない） */
+            flex: 1; 
             padding: 0;
             transition: transform 0.1s ease;
         }
@@ -72,7 +70,7 @@
 
         .icon-wrapper {
             position: relative;
-            width: 32px; /* スマホでもPCでも潰れない最適サイズ */
+            width: 32px; 
             height: 32px;
             display: flex;
             justify-content: center;
@@ -128,7 +126,7 @@
             font-size: 11px;
             font-weight: bold;
             z-index: 100;
-            pointer-events: none; /* 下のボタンのクリックを邪魔しない */
+            pointer-events: none;
             animation: fadeIn 0.2s ease-out;
         }
 
