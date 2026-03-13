@@ -3,42 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Widget - Stable Edition</title>
+    <title>Feedback Widget - macOS Control Center Edition v2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        /* 原点回帰：余計な高さ固定やスクロール制御を全廃止 */
         body { 
             background: transparent; 
             margin: 0; 
-            /* バッジやトーストが枠外にはみ出してスクロールバーを出すのを防ぐための「見えないクッション」 */
             padding: 15px; 
-            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
         }
 
         #root { 
             display: flex; 
-            justify-content: flex-start; /* 左寄せ */
+            justify-content: flex-start; 
         }
         
+        /* --- 全体の器：macOSウィジェット風 --- */
         .widget-panel {
             display: inline-flex;
             gap: 2rem;
             align-items: center;
             background-color: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 12px 24px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #d1d1d6;               /* 繊細なグレー */
+            border-radius: 14px;                     /* macOSらしい角丸 */
+            padding: 14px 18px;                      /* 少しゆったりとした余白 */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06); /* 柔らかい影 */
             position: relative;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
         }
 
-        /* スマホ向けに間隔と余白をキュッと縮める */
         @media (max-width: 600px) {
-            .widget-panel { gap: 1rem; padding: 10px 16px; }
+            .widget-panel { gap: 1rem; padding: 10px 14px; }
         }
 
         .minimal-btn {
@@ -55,6 +54,7 @@
 
         .minimal-btn:active { transform: translateY(1px) scale(0.96); }
 
+        /* --- 共通：ボタンの基本（押す前） --- */
         .icon-wrapper {
             position: relative;
             width: 32px; 
@@ -62,41 +62,49 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #475569; 
-            transition: color 0.3s ease;
+            color: #8e8e93; /* macOS標準の控えめなグレー */
+            transition: all 0.2s ease;
         }
 
-        .btn-naruhodo.has-count .icon-wrapper { color: #d97706; }
-        .btn-yattemiru.has-count .icon-wrapper { color: #059669; }
-        .btn-tensai.has-count .icon-wrapper { color: #7c3aed; }
+        /* --- 押した後の色：macOS System Colors --- */
+        .btn-naruhodo.has-count .icon-wrapper { color: #FF9500 !important; } /* macOS標準：知的な橙 */
+        .btn-yattemiru.has-count .icon-wrapper { color: #34C759 !important; } /* macOS標準：清潔感のある緑 */
+        .btn-tensai.has-count .icon-wrapper { color: #AF52DE !important; } /* macOS標準：透明感のある紫 */
 
+        /* --- バッジ：macOS通知ドット風 --- */
         .flat-dot {
             position: absolute;
-            top: -6px;
-            right: -8px;
-            background-color: #334155;
-            color: white;
+            top: -6px;   /* 位置の微調整：少し外側に逃がすとアイコンの形が保たれます */
+            right: -6px;
+            background-color: #1C1C1E !important; /* 真っ黒を避けた、macOSの深いグレー */
+            color: #FFFFFF !important;
             font-size: 10px;
-            font-weight: 800;
-            height: 18px;
+            font-weight: 700;
+            border-radius: 10px;
+            padding: 1px 6px; /* 左右に少し余裕を持たせる */
+            
+            /* ★最重要：白い縁取りを入れてアイコンから浮かせる */
+            border: 2px solid #FFFFFF !important;             
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* わずかな影を入れると、アイコンの上に浮いている立体感が出ます */
+            
+            /* 数字が増えても崩れないように */
             min-width: 18px;
-            padding: 0 4px;
-            border-radius: 9px;
+            text-align: center;
+            
             display: flex;
             justify-content: center;
             align-items: center;
-            border: 2px solid #fff;
             line-height: 1;
             z-index: 10;
+            transition: all 0.2s ease;
         }
 
-        .has-count .flat-dot { background-color: #0f172a; }
-
+        /* --- 下のラベル --- */
         .minimal-label {
-            margin-top: 4px; 
-            font-size: 11px; 
-            font-weight: 700;
-            color: #1e293b;
+            margin-top: 6px; 
+            font-size: 12px; 
+            font-weight: 500;
+            color: #1d1d1f; /* Apple標準の文字色 */
             letter-spacing: 0.01em;
             white-space: nowrap;
         }
