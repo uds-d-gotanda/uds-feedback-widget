@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "uds-portal-tools"
+  },
+  "targets": {
+    "uds-portal-tools": {
+      "hosting": {
+        "feedback-widget-site": [
+          "uds-feedback-widget"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
