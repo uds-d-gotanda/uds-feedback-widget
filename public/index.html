@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Widget - Accessible Adult Edition</title>
+    <title>Feedback Widget - Precision Color Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -25,7 +25,7 @@
             justify-content: flex-start; 
         }
         
-        /* --- 全体の器：静かで洗練された配置 --- */
+        /* --- 全体の器 --- */
         .widget-panel {
             display: inline-flex;
             gap: 2.8rem;
@@ -43,6 +43,7 @@
             flex-direction: column;
             align-items: center;
             gap: 12px;
+            position: relative;
         }
 
         /* --- Apple HIG: 58x58 px Precision Button --- */
@@ -58,10 +59,19 @@
             cursor: pointer;
             border: none;
             outline: none;
-            /* 繊細な多層シャドウ */
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             color: #D1D1D6; 
+        }
+
+        /* --- 波紋レイヤー --- */
+        .ripple-wrapper {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
         }
 
         .circle-btn:hover {
@@ -74,12 +84,29 @@
             transition: all 0.1s ease;
         }
 
-        /* --- Apple System Colors: アイコンのみに光を宿す --- */
-        .is-active.btn-naruhodo .circle-btn { color: #34C759 !important; } 
-        .is-active.btn-yattemiru .circle-btn { color: #FF9500 !important; } 
-        .is-active.btn-tensai .circle-btn { color: #007AFF !important; }   
+        .ripple {
+            position: absolute;
+            background: currentColor;
+            opacity: 0.15;
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple-animation 0.6s linear;
+            pointer-events: none;
+        }
 
-        /* --- バッジ：コントラストと質感を両立 --- */
+        @keyframes ripple-animation {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* --- 指定色の反映 (Active State) --- */
+        .is-active.btn-naruhodo .circle-btn { color: #2DA44E !important; } 
+        .is-active.btn-yattemiru .circle-btn { color: #E36209 !important; } 
+        .is-active.btn-tensai .circle-btn { color: #0969DA !important; }   
+
+        /* --- バッジ --- */
         .flat-dot {
             position: absolute;
             top: -2px;
@@ -97,22 +124,23 @@
             text-align: center;
             z-index: 10;
             line-height: 1.4;
+            pointer-events: none;
         }
 
-        /* --- ラベル：アクセシビリティを確保した洗練グレー --- */
+        /* --- ラベル：洗練されたスタティック・グレー --- */
         .minimal-label {
             font-size: 11.5px; 
             font-weight: 600;
             letter-spacing: -0.01em;
-            /* #8E8E93(3.4:1) から #636366(5.5:1) に変更 */
             color: #636366; 
-            transition: color 0.3s ease;
             white-space: nowrap;
         }
 
         .icon-svg {
             width: 30px;
             height: 30px;
+            transition: fill 0.3s ease;
+            z-index: 2; 
         }
     </style>
 </head>
@@ -143,26 +171,50 @@
         const DEFAULT_SETTING = { id: "default_page", title: "名称未設定ページ" };
 
         const Icons = {
-            Naruhodo: () => (
-                <svg viewBox="0 0 24 24" className="icon-svg" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+            Naruhodo: ({ isActive }) => (
+                <svg viewBox="0 0 24 24" className="icon-svg" 
+                     fill={isActive ? "currentColor" : "none"} 
+                     stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
                     <line x1="9" y1="18" x2="15" y2="18" />
                     <line x1="10" y1="22" x2="14" y2="22" />
                 </svg>
             ),
-            Yattemiru: () => (
-                <svg viewBox="0 0 24 24" className="icon-svg" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+            Yattemiru: ({ isActive }) => (
+                <svg viewBox="0 0 24 24" className="icon-svg" 
+                     fill={isActive ? "currentColor" : "none"} 
+                     stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
                 </svg>
             ),
-            Tensai: () => (
-                <svg viewBox="0 0 24 24" className="icon-svg" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+            Tensai: ({ isActive }) => (
+                <svg viewBox="0 0 24 24" className="icon-svg" 
+                     fill={isActive ? "currentColor" : "none"} 
+                     stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
             )
         };
 
         function App() {
+            // 直接アクセスの制限ロジック（管理者モード以外でトップレベル表示されている場合にブロック）
+            if (window.top === window.self && !window.location.search.includes('mode=admin')) {
+                return (
+                    <div style={{ 
+                        padding: '24px', 
+                        color: '#636366', 
+                        fontSize: '13px', 
+                        textAlign: 'center',
+                        fontFamily: '-apple-system, sans-serif',
+                        border: '1px dashed #D1D1D6',
+                        borderRadius: '16px',
+                        margin: '20px'
+                    }}>
+                        このウィジェットは直接アクセスできません。<br/>ポータルサイトの記事内から閲覧してください。
+                    </div>
+                );
+            }
+
             const [ready, setReady] = useState(false);
             const [user, setUser] = useState(null);
             const [pageId, setPageId] = useState("");
@@ -250,11 +302,50 @@
         }
 
         function ReactionButton({ icon: Icon, label, count, isActive, onClick, className }) {
+            const [ripples, setRipples] = useState([]);
+
+            const createRipple = (event) => {
+                const button = event.currentTarget;
+                const rect = button.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = event.clientX - rect.left - size / 2;
+                const y = event.clientY - rect.top - size / 2;
+
+                const newRipple = {
+                    id: Date.now(),
+                    top: y,
+                    left: x,
+                    size: size
+                };
+
+                setRipples((prev) => [...prev, newRipple]);
+                
+                setTimeout(() => {
+                    setRipples((prev) => prev.filter((r) => r.id !== newRipple.id));
+                }, 600);
+
+                onClick();
+            };
+
             return (
                 <div className={`reaction-container ${className} ${isActive ? 'is-active' : ''}`}>
-                    <button className="circle-btn" onClick={onClick}>
+                    <button className="circle-btn" onClick={createRipple}>
+                        <div className="ripple-wrapper">
+                            {ripples.map((ripple) => (
+                                <span 
+                                    key={ripple.id} 
+                                    className="ripple" 
+                                    style={{
+                                        top: ripple.top,
+                                        left: ripple.left,
+                                        width: ripple.size,
+                                        height: ripple.size
+                                    }}
+                                />
+                            ))}
+                        </div>
                         {count > 0 && <div className="flat-dot">{count > 99 ? '99+' : count}</div>}
-                        <Icon />
+                        <Icon isActive={isActive} />
                     </button>
                     <span className="minimal-label">{label}</span>
                 </div>
