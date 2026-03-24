@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Widget - Production Edition</title>
+    <title>Feedback Widget - Production Fixed</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -38,10 +38,12 @@
         .circle-btn:active { transform: translateY(0px) scale(0.92); }
         .ripple { position: absolute; background: currentColor; opacity: 0.15; border-radius: 50%; transform: scale(0); animation: ripple-animation 0.6s linear; pointer-events: none; }
         @keyframes ripple-animation { to { transform: scale(4); opacity: 0; } }
-        /* 指定配色：GitHub Style */
+        
+        /* 配色調整：GitHub Style Colors */
         .is-active.btn-naruhodo .circle-btn { color: #2DA44E !important; } 
         .is-active.btn-yattemiru .circle-btn { color: #E36209 !important; } 
         .is-active.btn-tensai .circle-btn { color: #0969DA !important; }   
+
         .flat-dot {
             position: absolute; top: -2px; right: -2px;
             background-color: rgba(60, 60, 67, 0.9) !important; 
@@ -99,17 +101,18 @@
         };
 
         function App() {
-            // URLパラメータを即座に取得
             const params = new URLSearchParams(window.location.search);
             const isAdminMode = params.get('mode') === 'admin';
             
-            // 直接アクセスのチェック（安全な比較）
-            const isDirectAccess = (() => {
-                try { return window.self === window.top; } catch (e) { return false; }
+            const isInsideFrame = (() => {
+                try {
+                    return window.self !== window.top;
+                } catch (e) {
+                    return true;
+                }
             })();
 
-            // 状態の初期化
-            const [view, setView] = useState(isAdminMode ? 'admin' : 'widget');
+            const [view] = useState(isAdminMode ? 'admin' : 'widget');
             const [ready, setReady] = useState(false);
             const [user, setUser] = useState(null);
             const [pageId] = useState(params.get('pid') || DEFAULT_SETTING.id);
@@ -119,8 +122,7 @@
             const [allPages, setAllPages] = useState([]);
             const [confirmReset, setConfirmReset] = useState(null);
 
-            // 直接アクセス制限の適用
-            if (isDirectAccess && !isAdminMode) {
+            if (!isInsideFrame && !isAdminMode) {
                 return (
                     <div style={{ padding: '24px', color: '#636366', fontSize: '13px', textAlign: 'center', fontFamily: '-apple-system, sans-serif', border: '1px dashed #D1D1D6', borderRadius: '16px', margin: '20px' }}>
                         このウィジェットは直接アクセスできません。<br/>ポータルサイトの記事内から閲覧してください。
@@ -142,7 +144,6 @@
                 return onAuthStateChanged(auth, setUser);
             }, [ready]);
 
-            // ウィジェット用データ取得
             useEffect(() => {
                 if (!user || !ready || !pageId || view !== 'widget') return;
                 const { getFirestore, doc, onSnapshot, setDoc, APP_ID } = window.FirebaseSDK;
@@ -154,7 +155,6 @@
                 }, (err) => console.warn(err));
             }, [user, ready, pageId, view]);
 
-            // 管理画面用データ取得
             useEffect(() => {
                 if (!user || !ready || view !== 'admin') return;
                 const { getFirestore, collection, onSnapshot, APP_ID } = window.FirebaseSDK;
@@ -163,7 +163,6 @@
                 return onSnapshot(colRef, (s) => setAllPages(s.docs.map(d => ({ id: d.id, ...d.data() }))), (err) => console.error(err));
             }, [user, ready, view]);
 
-            // 1人1回制限用の個人状態取得
             useEffect(() => {
                 if (!user || !ready || !pageId || view !== 'widget') return;
                 const { getFirestore, doc, onSnapshot, APP_ID } = window.FirebaseSDK;
