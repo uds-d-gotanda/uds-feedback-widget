@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Widget - Precision Color Edition</title>
+    <title>Feedback Widget - Production Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -11,137 +11,48 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap');
-
         body { 
             background: transparent; 
-            margin: 0; 
-            padding: 20px; 
+            margin: 0; padding: 20px; 
             font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; 
             -webkit-font-smoothing: antialiased;
         }
-
-        #root { 
-            display: flex; 
-            justify-content: flex-start; 
-        }
-        
-        /* --- 全体の器 --- */
+        #root { display: flex; justify-content: flex-start; }
         .widget-panel {
-            display: inline-flex;
-            gap: 2.8rem;
-            align-items: flex-start;
-            padding: 10px;
-            position: relative;
+            display: inline-flex; gap: 2.8rem; align-items: flex-start;
+            padding: 10px; position: relative;
         }
-
-        @media (max-width: 600px) {
-            .widget-panel { gap: 1.8rem; }
-        }
-
-        .reaction-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            position: relative;
-        }
-
-        /* --- Apple HIG: 58x58 px Precision Button --- */
+        @media (max-width: 600px) { .widget-panel { gap: 1.8rem; } }
+        .reaction-container { display: flex; flex-direction: column; align-items: center; gap: 12px; position: relative; }
         .circle-btn {
-            position: relative;
-            width: 58px; 
-            height: 58px;
-            background-color: #ffffff;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            border: none;
-            outline: none;
+            position: relative; width: 58px; height: 58px;
+            background-color: #ffffff; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; border: none; outline: none;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             color: #D1D1D6; 
         }
-
-        /* --- 波紋レイヤー --- */
-        .ripple-wrapper {
-            position: absolute;
-            inset: 0;
-            overflow: hidden;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .circle-btn:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
-        }
-
-        .circle-btn:active {
-            transform: translateY(0px) scale(0.92);
-            transition: all 0.1s ease;
-        }
-
-        .ripple {
-            position: absolute;
-            background: currentColor;
-            opacity: 0.15;
-            border-radius: 50%;
-            transform: scale(0);
-            animation: ripple-animation 0.6s linear;
-            pointer-events: none;
-        }
-
-        @keyframes ripple-animation {
-            to {
-                transform: scale(4);
-                opacity: 0;
-            }
-        }
-
-        /* --- 指定色の反映 (Active State) --- */
+        .ripple-wrapper { position: absolute; inset: 0; overflow: hidden; border-radius: 50%; pointer-events: none; z-index: 1; }
+        .circle-btn:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1); }
+        .circle-btn:active { transform: translateY(0px) scale(0.92); }
+        .ripple { position: absolute; background: currentColor; opacity: 0.15; border-radius: 50%; transform: scale(0); animation: ripple-animation 0.6s linear; pointer-events: none; }
+        @keyframes ripple-animation { to { transform: scale(4); opacity: 0; } }
+        /* 指定配色：GitHub Style */
         .is-active.btn-naruhodo .circle-btn { color: #2DA44E !important; } 
         .is-active.btn-yattemiru .circle-btn { color: #E36209 !important; } 
         .is-active.btn-tensai .circle-btn { color: #0969DA !important; }   
-
-        /* --- バッジ --- */
         .flat-dot {
-            position: absolute;
-            top: -2px;
-            right: -2px;
+            position: absolute; top: -2px; right: -2px;
             background-color: rgba(60, 60, 67, 0.9) !important; 
-            backdrop-filter: blur(5px);
-            color: #ffffff;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 1px 6px;
-            border-radius: 12px;
-            border: 2px solid #ffffff;
+            backdrop-filter: blur(5px); color: #ffffff;
+            font-size: 10px; font-weight: 700; padding: 1px 6px;
+            border-radius: 12px; border: 2px solid #ffffff;
             box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-            min-width: 22px;
-            text-align: center;
-            z-index: 10;
-            line-height: 1.4;
-            pointer-events: none;
+            min-width: 22px; text-align: center; z-index: 10; line-height: 1.4;
         }
-
-        /* --- ラベル：洗練されたスタティック・グレー --- */
-        .minimal-label {
-            font-size: 11.5px; 
-            font-weight: 600;
-            letter-spacing: -0.01em;
-            color: #636366; 
-            white-space: nowrap;
-        }
-
-        .icon-svg {
-            width: 30px;
-            height: 30px;
-            transition: fill 0.3s ease;
-            z-index: 2; 
-        }
+        .minimal-label { font-size: 11.5px; font-weight: 600; letter-spacing: -0.01em; color: #636366; white-space: nowrap; }
+        .icon-svg { width: 30px; height: 30px; transition: fill 0.3s ease; z-index: 2; }
     </style>
 </head>
 <body>
@@ -150,7 +61,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
         import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-        import { getFirestore, doc, onSnapshot, updateDoc, increment, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+        import { getFirestore, doc, onSnapshot, updateDoc, increment, setDoc, collection } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
         const MY_FIREBASE_CONFIG = {
             apiKey: "AIzaSyAvGBhHtPdR0qETpNh3eyYiVpAC0gYb2YU",
@@ -161,72 +72,61 @@
             appId: "1:1058352022068:web:70dcd97f1555d6a9d04061"
         };
         const APP_ID = "uds-portal-tools";
-
-        window.FirebaseSDK = { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, getFirestore, doc, onSnapshot, updateDoc, increment, setDoc, MY_FIREBASE_CONFIG, APP_ID };
+        window.FirebaseSDK = { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, getFirestore, doc, onSnapshot, updateDoc, increment, setDoc, collection, MY_FIREBASE_CONFIG, APP_ID };
     </script>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-
         const DEFAULT_SETTING = { id: "default_page", title: "名称未設定ページ" };
 
         const Icons = {
             Naruhodo: ({ isActive }) => (
-                <svg viewBox="0 0 24 24" className="icon-svg" 
-                     fill={isActive ? "currentColor" : "none"} 
-                     stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" className="icon-svg" fill={isActive ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
-                    <line x1="9" y1="18" x2="15" y2="18" />
-                    <line x1="10" y1="22" x2="14" y2="22" />
+                    <line x1="9" y1="18" x2="15" y2="18" /><line x1="10" y1="22" x2="14" y2="22" />
                 </svg>
             ),
             Yattemiru: ({ isActive }) => (
-                <svg viewBox="0 0 24 24" className="icon-svg" 
-                     fill={isActive ? "currentColor" : "none"} 
-                     stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" className="icon-svg" fill={isActive ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
                 </svg>
             ),
             Tensai: ({ isActive }) => (
-                <svg viewBox="0 0 24 24" className="icon-svg" 
-                     fill={isActive ? "currentColor" : "none"} 
-                     stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" className="icon-svg" fill={isActive ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
             )
         };
 
         function App() {
-            // 直接アクセスの制限ロジック（管理者モード以外でトップレベル表示されている場合にブロック）
-            if (window.top === window.self && !window.location.search.includes('mode=admin')) {
+            // URLパラメータを即座に取得
+            const params = new URLSearchParams(window.location.search);
+            const isAdminMode = params.get('mode') === 'admin';
+            
+            // 直接アクセスのチェック（安全な比較）
+            const isDirectAccess = (() => {
+                try { return window.self === window.top; } catch (e) { return false; }
+            })();
+
+            // 状態の初期化
+            const [view, setView] = useState(isAdminMode ? 'admin' : 'widget');
+            const [ready, setReady] = useState(false);
+            const [user, setUser] = useState(null);
+            const [pageId] = useState(params.get('pid') || DEFAULT_SETTING.id);
+            const [pageTitle] = useState(params.get('ptitle') || DEFAULT_SETTING.title);
+            const [stats, setStats] = useState({ learning: 0, clarity: 0, insight: 0 });
+            const [myReactions, setMyReactions] = useState({});
+            const [allPages, setAllPages] = useState([]);
+            const [confirmReset, setConfirmReset] = useState(null);
+
+            // 直接アクセス制限の適用
+            if (isDirectAccess && !isAdminMode) {
                 return (
-                    <div style={{ 
-                        padding: '24px', 
-                        color: '#636366', 
-                        fontSize: '13px', 
-                        textAlign: 'center',
-                        fontFamily: '-apple-system, sans-serif',
-                        border: '1px dashed #D1D1D6',
-                        borderRadius: '16px',
-                        margin: '20px'
-                    }}>
+                    <div style={{ padding: '24px', color: '#636366', fontSize: '13px', textAlign: 'center', fontFamily: '-apple-system, sans-serif', border: '1px dashed #D1D1D6', borderRadius: '16px', margin: '20px' }}>
                         このウィジェットは直接アクセスできません。<br/>ポータルサイトの記事内から閲覧してください。
                     </div>
                 );
             }
-
-            const [ready, setReady] = useState(false);
-            const [user, setUser] = useState(null);
-            const [pageId, setPageId] = useState("");
-            const [pageTitle, setPageTitle] = useState("");
-            const [stats, setStats] = useState({ learning: 0, clarity: 0, insight: 0 });
-            const [myReactions, setMyReactions] = useState({});
-
-            useEffect(() => {
-                const params = new URLSearchParams(window.location.search);
-                setPageId(params.get('pid') || DEFAULT_SETTING.id);
-                setPageTitle(params.get('ptitle') || DEFAULT_SETTING.title);
-            }, []);
 
             useEffect(() => {
                 const interval = setInterval(() => { if (window.FirebaseSDK) { setReady(true); clearInterval(interval); } }, 100);
@@ -242,32 +142,38 @@
                 return onAuthStateChanged(auth, setUser);
             }, [ready]);
 
+            // ウィジェット用データ取得
             useEffect(() => {
-                if (!user || !ready || !pageId) return;
+                if (!user || !ready || !pageId || view !== 'widget') return;
                 const { getFirestore, doc, onSnapshot, setDoc, APP_ID } = window.FirebaseSDK;
                 const db = getFirestore();
                 const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'feedback', pageId);
-                
-                return onSnapshot(docRef, 
-                    (snap) => {
-                        if (snap.exists()) setStats(snap.data());
-                        else setDoc(docRef, { learning: 0, clarity: 0, insight: 0, title: pageTitle, lastUpdated: Date.now() });
-                    },
-                    (err) => console.warn("Public load wait:", err.message)
-                );
-            }, [user, ready, pageId, pageTitle]);
+                return onSnapshot(docRef, (snap) => {
+                    if (snap.exists()) setStats(snap.data());
+                    else setDoc(docRef, { learning: 0, clarity: 0, insight: 0, title: pageTitle, lastUpdated: Date.now() });
+                }, (err) => console.warn(err));
+            }, [user, ready, pageId, view]);
 
+            // 管理画面用データ取得
             useEffect(() => {
-                if (!user || !ready || !pageId) return;
+                if (!user || !ready || view !== 'admin') return;
+                const { getFirestore, collection, onSnapshot, APP_ID } = window.FirebaseSDK;
+                const db = getFirestore();
+                const colRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'feedback');
+                return onSnapshot(colRef, (s) => setAllPages(s.docs.map(d => ({ id: d.id, ...d.data() }))), (err) => console.error(err));
+            }, [user, ready, view]);
+
+            // 1人1回制限用の個人状態取得
+            useEffect(() => {
+                if (!user || !ready || !pageId || view !== 'widget') return;
                 const { getFirestore, doc, onSnapshot, APP_ID } = window.FirebaseSDK;
                 const db = getFirestore();
                 const myRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'my_reactions', pageId);
-                
                 return onSnapshot(myRef, (snap) => {
                     if (snap.exists()) setMyReactions(snap.data());
                     else setMyReactions({});
-                }, (err) => console.warn("User state wait:", err.message));
-            }, [user, ready, pageId]);
+                }, (err) => console.warn(err));
+            }, [user, ready, pageId, view]);
 
             const handleAction = async (type) => {
                 if (!user || !pageId) return;
@@ -276,7 +182,6 @@
                 const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'feedback', pageId);
                 const myRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'my_reactions', pageId);
                 const hasReacted = myReactions[type];
-
                 try {
                     if (hasReacted) {
                         await updateDoc(docRef, { [type]: increment(-1), lastUpdated: Date.now() });
@@ -285,10 +190,69 @@
                         await updateDoc(docRef, { [type]: increment(1), lastUpdated: Date.now() });
                         await setDoc(myRef, { ...myReactions, [type]: true });
                     }
-                } catch (err) {
-                    console.error("Firebase update failed:", err);
-                }
+                } catch (err) { console.error(err); }
             };
+
+            const resetPageStats = async (targetId) => {
+                const { getFirestore, doc, updateDoc, APP_ID } = window.FirebaseSDK;
+                const db = getFirestore();
+                const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'feedback', targetId);
+                await updateDoc(docRef, { learning: 0, clarity: 0, insight: 0, lastUpdated: Date.now() });
+                setConfirmReset(null);
+            };
+
+            const downloadCSV = () => {
+                const head = ['タイトル', 'ID', 'なるほど', 'やってみる', '天才かよ', '最終更新'];
+                const rows = allPages.map(p => [p.title || '無題', p.id, p.learning || 0, p.clarity || 0, p.insight || 0, p.lastUpdated ? new Date(p.lastUpdated).toLocaleString() : '-']);
+                const csv = "\ufeff" + [head, ...rows].map(r => r.join(",")).join("\n");
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+                link.download = `feedback_report_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+            };
+
+            if (view === 'admin') {
+                return (
+                    <div className="p-4 bg-gray-50 min-h-screen text-[12px] text-slate-800 w-full">
+                        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                <h2 className="font-bold text-sm">集計データ（管理モード）</h2>
+                                <button onClick={downloadCSV} className="bg-slate-900 text-white px-3 py-1 rounded hover:bg-black transition text-[10px] font-bold">CSV出力</button>
+                            </div>
+                            <table className="w-full text-left">
+                                <thead><tr className="bg-slate-50 text-slate-400 font-bold text-[9px] uppercase tracking-widest">
+                                    <th className="p-3 border-b">タイトル / ID</th>
+                                    <th className="p-3 border-b text-center">なるほど</th>
+                                    <th className="p-3 border-b text-center">やってみる</th>
+                                    <th className="p-3 border-b text-center">天才かよ</th>
+                                    <th className="p-3 border-b text-right">操作</th>
+                                </tr></thead>
+                                <tbody>{allPages.length === 0 ? <tr><td colSpan="5" className="p-10 text-center text-slate-300">データがありません</td></tr> : allPages.map(p => (
+                                    <tr key={p.id} className="border-b border-slate-50 hover:bg-blue-50/20 transition">
+                                        <td className="p-3">
+                                            <div className="font-bold text-slate-900 text-[11px]">{p.title || '無題'}</div>
+                                            <div className="text-[9px] text-slate-400 font-mono">{p.id}</div>
+                                        </td>
+                                        <td className="p-3 text-center text-green-600 font-bold">{p.learning || 0}</td>
+                                        <td className="p-3 text-center text-orange-600 font-bold">{p.clarity || 0}</td>
+                                        <td className="p-3 text-center text-blue-600 font-bold">{p.insight || 0}</td>
+                                        <td className="p-3 text-right">
+                                            {confirmReset === p.id ? (
+                                                <div className="flex gap-1 justify-end">
+                                                    <button onClick={() => resetPageStats(p.id)} className="bg-red-500 text-white px-2 py-0.5 rounded text-[9px] font-bold">確定</button>
+                                                    <button onClick={() => setConfirmReset(null)} className="bg-slate-200 px-2 py-0.5 rounded text-[9px]">戻る</button>
+                                                </div>
+                                            ) : (
+                                                <button onClick={() => setConfirmReset(p.id)} className="text-gray-300 hover:text-red-400 text-[9px] font-bold">リセット</button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                );
+            }
 
             return (
                 <div className="w-full select-none">
@@ -303,46 +267,22 @@
 
         function ReactionButton({ icon: Icon, label, count, isActive, onClick, className }) {
             const [ripples, setRipples] = useState([]);
-
             const createRipple = (event) => {
                 const button = event.currentTarget;
                 const rect = button.getBoundingClientRect();
                 const size = Math.max(rect.width, rect.height);
                 const x = event.clientX - rect.left - size / 2;
                 const y = event.clientY - rect.top - size / 2;
-
-                const newRipple = {
-                    id: Date.now(),
-                    top: y,
-                    left: x,
-                    size: size
-                };
-
+                const newRipple = { id: Date.now(), top: y, left: x, size: size };
                 setRipples((prev) => [...prev, newRipple]);
-                
-                setTimeout(() => {
-                    setRipples((prev) => prev.filter((r) => r.id !== newRipple.id));
-                }, 600);
-
+                setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== newRipple.id)), 600);
                 onClick();
             };
-
             return (
                 <div className={`reaction-container ${className} ${isActive ? 'is-active' : ''}`}>
                     <button className="circle-btn" onClick={createRipple}>
                         <div className="ripple-wrapper">
-                            {ripples.map((ripple) => (
-                                <span 
-                                    key={ripple.id} 
-                                    className="ripple" 
-                                    style={{
-                                        top: ripple.top,
-                                        left: ripple.left,
-                                        width: ripple.size,
-                                        height: ripple.size
-                                    }}
-                                />
-                            ))}
+                            {ripples.map((r) => <span key={r.id} className="ripple" style={{ top: r.top, left: r.left, width: r.size, height: r.size }} />)}
                         </div>
                         {count > 0 && <div className="flat-dot">{count > 99 ? '99+' : count}</div>}
                         <Icon isActive={isActive} />
