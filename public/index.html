@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Widget - Production Fixed</title>
+    <title>Feedback Widget - Authenticated</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 設定ファイル: 秘匿情報はこのファイルに分離し、GitHubには公開しない -->
+    <script src="config.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap');
@@ -62,24 +65,39 @@
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+        // 匿名認証を削除し、Google認証用のモジュールを追加
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
         import { getFirestore, doc, onSnapshot, updateDoc, increment, setDoc, collection } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+        // App Checkのモジュールを追加
+        import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app-check.js';
 
-        const MY_FIREBASE_CONFIG = {
-            apiKey: "AIzaSyAvGBhHtPdR0qETpNh3eyYiVpAC0gYb2YU",
-            authDomain: "uds-portal-tools.firebaseapp.com",
-            projectId: "uds-portal-tools",
-            storageBucket: "uds-portal-tools.firebasestorage.app",
-            messagingSenderId: "1058352022068",
-            appId: "1:1058352022068:web:70dcd97f1555d6a9d04061"
+        // 設定情報の外部化（config.jsがない場合はダミーを使う）
+        const CONFIG = window.WIDGET_CONFIG || {
+            firebaseConfig: {
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+                messagingSenderId: "YOUR_SENDER_ID",
+                appId: "YOUR_APP_ID"
+            },
+            appId: "YOUR_PROJECT_ID",
+            recaptchaSiteKey: "YOUR_RECAPTCHA_SITE_KEY"
         };
-        const APP_ID = "uds-portal-tools";
-        window.FirebaseSDK = { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, getFirestore, doc, onSnapshot, updateDoc, increment, setDoc, collection, MY_FIREBASE_CONFIG, APP_ID };
+        
+        window.FirebaseSDK = { 
+            initializeApp, getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, 
+            getFirestore, doc, onSnapshot, updateDoc, increment, setDoc, collection, 
+            CONFIG, initializeAppCheck, ReCaptchaV3Provider 
+        };
     </script>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
         const DEFAULT_SETTING = { id: "default_page", title: "名称未設定ページ" };
+
+        // ★ 許可するメールドメインのリスト（IT MAIL ARCHIVESと共通）
+        const ALLOWED_DOMAINS = ["uds-net.co.jp", "okinawa-uds.co.jp"];
 
         const Icons = {
             Naruhodo: ({ isActive }) => (
@@ -104,14 +122,6 @@
             const params = new URLSearchParams(window.location.search);
             const isAdminMode = params.get('mode') === 'admin';
             
-            const isInsideFrame = (() => {
-                try {
-                    return window.self !== window.top;
-                } catch (e) {
-                    return true;
-                }
-            })();
-
             const [view] = useState(isAdminMode ? 'admin' : 'widget');
             const [ready, setReady] = useState(false);
             const [user, setUser] = useState(null);
@@ -121,14 +131,11 @@
             const [myReactions, setMyReactions] = useState({});
             const [allPages, setAllPages] = useState([]);
             const [confirmReset, setConfirmReset] = useState(null);
-
-            if (!isInsideFrame && !isAdminMode) {
-                return (
-                    <div style={{ padding: '24px', color: '#636366', fontSize: '13px', textAlign: 'center', fontFamily: '-apple-system, sans-serif', border: '1px dashed #D1D1D6', borderRadius: '16px', margin: '20px' }}>
-                        このウィジェットは直接アクセスできません。<br/>ポータルサイトの記事内から閲覧してください。
-                    </div>
-                );
-            }
+            
+            // エラーと認証ステータス管理
+            const [accessError, setAccessError] = useState(false);
+            const [configError, setConfigError] = useState(false);
+            const [authStatus, setAuthStatus] = useState('loading'); // loading, unauthenticated, domain_error, authenticated
 
             useEffect(() => {
                 const interval = setInterval(() => { if (window.FirebaseSDK) { setReady(true); clearInterval(interval); } }, 100);
@@ -137,49 +144,110 @@
 
             useEffect(() => {
                 if (!ready) return;
-                const { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, MY_FIREBASE_CONFIG } = window.FirebaseSDK;
-                const app = initializeApp(MY_FIREBASE_CONFIG);
+                const { initializeApp, getAuth, onAuthStateChanged, CONFIG, initializeAppCheck, ReCaptchaV3Provider } = window.FirebaseSDK;
+                
+                // 設定がない場合（GitHub等）のガード
+                if (CONFIG.firebaseConfig.apiKey.includes("YOUR_")) {
+                    setConfigError(true);
+                    setAuthStatus('unauthenticated');
+                    return;
+                }
+                
+                const app = initializeApp(CONFIG.firebaseConfig);
+
+                // App Check 初期化
+                try {
+                    initializeAppCheck(app, {
+                        provider: new ReCaptchaV3Provider(CONFIG.recaptchaSiteKey),
+                        isTokenAutoRefreshEnabled: true
+                    });
+                } catch (e) {
+                    console.error("App Check Error:", e);
+                }
+
                 const auth = getAuth(app);
-                signInAnonymously(auth).catch(console.error);
-                return onAuthStateChanged(auth, setUser);
+                
+                // 認証状態とドメインの監視
+                return onAuthStateChanged(auth, (currentUser) => {
+                    if (currentUser) {
+                        // ALLOWED_DOMAINS のいずれかに一致するかチェック
+                        const isAllowedDomain = currentUser.email && ALLOWED_DOMAINS.some(domain => currentUser.email.endsWith(`@${domain}`));
+                        
+                        if (isAllowedDomain) {
+                            setUser(currentUser);
+                            setAuthStatus('authenticated');
+                        } else {
+                            setUser(null);
+                            setAuthStatus('domain_error');
+                        }
+                    } else {
+                        setUser(null);
+                        setAuthStatus('unauthenticated');
+                    }
+                });
             }, [ready]);
 
+            // ログイン処理（Googleポップアップ）
+            const handleLogin = async () => {
+                const { getAuth, GoogleAuthProvider, signInWithPopup } = window.FirebaseSDK;
+                const auth = getAuth();
+                const provider = new GoogleAuthProvider();
+                
+                // UX向上のため、デフォルトのログイン先ドメインを配列の1つ目に指定（例：uds-net.co.jp）
+                provider.setCustomParameters({ hd: ALLOWED_DOMAINS[0] });
+
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    console.error("Login failed:", error);
+                    if (error.code === 'auth/popup-blocked') {
+                        alert("ブラウザにポップアップがブロックされました。URLバー付近のアイコンからポップアップを許可してください。");
+                    } else {
+                        alert("ログイン処理が中断されました。(" + error.code + ")");
+                    }
+                }
+            };
+
             useEffect(() => {
-                if (!user || !ready || !pageId || view !== 'widget') return;
-                const { getFirestore, doc, onSnapshot, setDoc, APP_ID } = window.FirebaseSDK;
+                if (authStatus !== 'authenticated' || !user || !pageId || view !== 'widget') return;
+                const { getFirestore, doc, onSnapshot, setDoc, CONFIG } = window.FirebaseSDK;
                 const db = getFirestore();
-                const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'feedback', pageId);
+                const docRef = doc(db, 'artifacts', CONFIG.appId, 'public', 'data', 'feedback', pageId);
                 return onSnapshot(docRef, (snap) => {
                     if (snap.exists()) setStats(snap.data());
                     else setDoc(docRef, { learning: 0, clarity: 0, insight: 0, title: pageTitle, lastUpdated: Date.now() });
-                }, (err) => console.warn(err));
-            }, [user, ready, pageId, view]);
+                }, (err) => {
+                    console.warn("Firestore Error:", err);
+                    // どんなエラー（キャッシュ不整合含む）が起きても無反応を避け、エラー画面に切り替える
+                    setAccessError(true); 
+                });
+            }, [authStatus, user, pageId, view]);
 
             useEffect(() => {
-                if (!user || !ready || view !== 'admin') return;
-                const { getFirestore, collection, onSnapshot, APP_ID } = window.FirebaseSDK;
+                if (authStatus !== 'authenticated' || !user || view !== 'admin') return;
+                const { getFirestore, collection, onSnapshot, CONFIG } = window.FirebaseSDK;
                 const db = getFirestore();
-                const colRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'feedback');
+                const colRef = collection(db, 'artifacts', CONFIG.appId, 'public', 'data', 'feedback');
                 return onSnapshot(colRef, (s) => setAllPages(s.docs.map(d => ({ id: d.id, ...d.data() }))), (err) => console.error(err));
-            }, [user, ready, view]);
+            }, [authStatus, user, view]);
 
             useEffect(() => {
-                if (!user || !ready || !pageId || view !== 'widget') return;
-                const { getFirestore, doc, onSnapshot, APP_ID } = window.FirebaseSDK;
+                if (authStatus !== 'authenticated' || !user || !pageId || view !== 'widget') return;
+                const { getFirestore, doc, onSnapshot, CONFIG } = window.FirebaseSDK;
                 const db = getFirestore();
-                const myRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'my_reactions', pageId);
+                const myRef = doc(db, 'artifacts', CONFIG.appId, 'users', user.uid, 'my_reactions', pageId);
                 return onSnapshot(myRef, (snap) => {
                     if (snap.exists()) setMyReactions(snap.data());
                     else setMyReactions({});
                 }, (err) => console.warn(err));
-            }, [user, ready, pageId, view]);
+            }, [authStatus, user, pageId, view]);
 
             const handleAction = async (type) => {
-                if (!user || !pageId) return;
-                const { getFirestore, doc, updateDoc, increment, setDoc, APP_ID } = window.FirebaseSDK;
+                if (authStatus !== 'authenticated' || !user || !pageId || accessError || configError) return;
+                const { getFirestore, doc, updateDoc, increment, setDoc, CONFIG } = window.FirebaseSDK;
                 const db = getFirestore();
-                const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'feedback', pageId);
-                const myRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'my_reactions', pageId);
+                const docRef = doc(db, 'artifacts', CONFIG.appId, 'public', 'data', 'feedback', pageId);
+                const myRef = doc(db, 'artifacts', CONFIG.appId, 'users', user.uid, 'my_reactions', pageId);
                 const hasReacted = myReactions[type];
                 try {
                     if (hasReacted) {
@@ -193,9 +261,9 @@
             };
 
             const resetPageStats = async (targetId) => {
-                const { getFirestore, doc, updateDoc, APP_ID } = window.FirebaseSDK;
+                const { getFirestore, doc, updateDoc, CONFIG } = window.FirebaseSDK;
                 const db = getFirestore();
-                const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'feedback', targetId);
+                const docRef = doc(db, 'artifacts', CONFIG.appId, 'public', 'data', 'feedback', targetId);
                 await updateDoc(docRef, { learning: 0, clarity: 0, insight: 0, lastUpdated: Date.now() });
                 setConfirmReset(null);
             };
@@ -209,6 +277,81 @@
                 link.download = `feedback_report_${new Date().toISOString().split('T')[0]}.csv`;
                 link.click();
             };
+
+            // ===== UI のレンダリング =====
+
+            if (configError) {
+                return (
+                    <div className="w-full select-none p-2">
+                        <div className="inline-flex items-start gap-3 px-5 py-4 rounded-xl border border-orange-200 bg-orange-50 text-orange-800">
+                            <svg className="w-5 h-5 mt-0.5 opacity-80 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div className="text-[12px] leading-relaxed">
+                                <strong className="font-bold block mb-1">設定ファイルがありません</strong>
+                                実際のサーバーに <code>config.js</code> を配置することで正常に表示されます。
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (authStatus === 'loading') {
+                return <div className="p-4 text-xs text-gray-400">認証情報を確認中...</div>;
+            }
+
+            if (authStatus === 'unauthenticated') {
+                return (
+                    <div className="w-full select-none p-2">
+                        <button onClick={handleLogin} className="group relative inline-flex items-center gap-3 px-2 py-2 pr-3 rounded-full border border-gray-200 bg-white hover:bg-slate-50 text-left shadow-sm transition-all hover:shadow hover:-translate-y-0.5 max-w-[280px] w-full sm:w-auto">
+                            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 text-slate-500 shrink-0 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-[9px] text-gray-400 font-bold tracking-wide uppercase mb-0.5">Security</div>
+                                <div className="text-[11px] font-bold text-gray-700 leading-tight truncate">リアクションを利用する</div>
+                            </div>
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800 text-white shrink-0 group-hover:bg-blue-600 transition-colors shadow-sm">
+                                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"/>
+                                </svg>
+                                <span className="text-[10px] font-bold whitespace-nowrap">ログイン</span>
+                            </div>
+                        </button>
+                    </div>
+                );
+            }
+
+            if (authStatus === 'domain_error') {
+                return (
+                    <div className="w-full select-none p-2">
+                        <div className="inline-flex flex-col gap-2 px-5 py-3 rounded-xl border border-red-200 bg-red-50 text-red-600">
+                            <div className="text-[12px] font-bold">権限エラー</div>
+                            <div className="text-[11px] leading-snug">
+                                社内アカウントのみ利用可能です。<br/>
+                                別のアカウントで再度お試しください。
+                            </div>
+                            <button onClick={handleLogin} className="mt-1 text-[11px] underline text-red-500 hover:text-red-700 text-left">
+                                アカウントを切り替える
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (accessError) {
+                return (
+                    <div className="w-full select-none p-2">
+                        <div className="inline-flex items-center gap-3 px-5 py-3 rounded-full border-2 border-dashed border-gray-200 bg-gray-50 text-gray-400/80">
+                            <div className="text-[11px] font-semibold tracking-wide leading-snug">
+                                データへのアクセス権限がありません
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
 
             if (view === 'admin') {
                 return (
